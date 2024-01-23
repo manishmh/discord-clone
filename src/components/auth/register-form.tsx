@@ -18,10 +18,9 @@ import { Input } from "@/components/ui/input";
 import { registerSchema } from "@/schemas/input-validation";
 import Link from "next/link";
 import { useToast } from "@/components/ui/use-toast";
+import { register } from "@/actions/register";
 
 const RegisterForm = () => {
-  const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast()
 
@@ -34,31 +33,42 @@ const RegisterForm = () => {
   });
 
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {
-    const { email, password }  = values;
-    try {
-        const { email, password } = values;
-        const res = await fetch("http://localhost:8080/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await res.json();
-        console.log(data);
+    startTransition(() => {
+      register(values)
+        .then((data) => {
+          if (data.error) {
+            toast({ title: "Login Error", description: data.error});
+          } else if (data.success) {
+            toast({ title: "Success", description: data.success});
+          }
+      })
+    })
 
-        if (data?.status == "success") {
-          toast({ title: "Login Authentication", description: "user registered successfully"});
-        } else if(data?.status === 'conflict') {
-          toast({ title: "Login Failed", description: "user already exists"});
-        }
-      } catch (error) {
-        toast({
-          title: "Login Authentication",
-          description: "User does not exist",
-          duration: 2000,
-        });
-      } 
+    // const { email, password }  = values;
+    // try {
+    //     const { email, password } = values;
+    //     const res = await fetch("http://localhost:8080/register", {
+    //       method: "POST",
+    //       headers: {
+    //         "Content-Type": "application/json",
+    //       },
+    //       body: JSON.stringify({ email, password }),
+    //     });
+    //     const data = await res.json();
+    //     console.log(data);
+
+    //     if (data?.status == "success") {
+    //       toast({ title: "Login Authentication", description: "user registered successfully"});
+    //     } else if(data?.status === 'conflict') {
+    //       toast({ title: "Login Failed", description: "user already exists"});
+    //     }
+    //   } catch (error) {
+    //     toast({
+    //       title: "Login Authentication",
+    //       description: "User does not exist",
+    //       duration: 2000,
+    //     });
+    //   } 
   };
 
   return (
@@ -68,6 +78,28 @@ const RegisterForm = () => {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col w-full gap-3 items-center max-w-md">
             <div className="space-y-3 w-full">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold text-gray-300">
+                      Name
+                      <span className="text-red-500"> *</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        disabled={isPending}
+                        type="text"
+                        placeholder="Your name"
+                        className="mt-1.5 rounded-sm focus-visible:ring-0 focus-visible:ring-offset-0 bg-primary-input border-none"
+                      />
+                    </FormControl>
+                    <FormMessage className="text-red-400 text-xs"/>
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="email"

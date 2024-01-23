@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useTransition } from "react";
+import { signIn } from 'next-auth/react'
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -18,11 +19,11 @@ import { Input } from "@/components/ui/input";
 import { loginSchema } from "@/schemas/input-validation";
 import Link from "next/link";
 import { useToast } from "@/components/ui/use-toast";
-import { signIn } from 'next-auth/react'
+import { login } from "@/actions/login";
 
 const LoginForm = () => {
-  const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>("");
+  const [error, setError] =  useState("");
+  const [success, setSuccess] =  useState("");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast()
 
@@ -34,33 +35,17 @@ const LoginForm = () => {
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof loginSchema>) => {
-    const { email, password }  = values;
-    try {
-        const { email, password } = values
-        const response = await fetch('http://localhost:8080/login', {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
+  const onSubmit = (values: z.infer<typeof loginSchema>) => {
+    startTransition(() => {
+      login(values)
+        .then((data) => {
+          if (data.error) {
+            toast({ title: "Login Error", description: data.error});
+          } else if (data.success) {
+            toast({ title: "Logged in Successfully", description: data.success});
+          }
         })
-        const data = await response.json();
-        console.log('dataaaa', data)
-        if (data) {
-          if (data?.status == "Success") {
-            toast({title: "Logged in Successfully"});
-          }
-          else if (data?.status == 'failure') {
-            toast({title: "wrong password"});
-          }
-        } else {
-            toast({ title: "Login Failed", description: "User does not exist"});
-        }
-
-      } catch (error) {
-        toast({title: "server error"})
-      }
+    })
   };
 
   return (
@@ -119,6 +104,7 @@ const LoginForm = () => {
               />
               <Button
                 type="submit"
+                disabled={isPending}
                 className="bg-gray-200 w-full font-semibold text-black"
               >
                 Login

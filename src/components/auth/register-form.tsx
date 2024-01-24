@@ -18,6 +18,8 @@ import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { register } from "@/actions/register";
+import { db } from '@/firebase/config';
+import { collection, addDoc } from "firebase/firestore";
 
 const RegisterForm = () => {
   const [isPending, startTransition] = useTransition();
@@ -40,20 +42,20 @@ const RegisterForm = () => {
         if (data.error) {
           toast({ title: "Login Error", description: data.error });
         } else if (data.success) {
-          // try {
-          //   const docRef = await addDoc(collection(db, "users"), {
-          //     name: values.name,
-          //     email: values.email,
-          //     password: values.password,
-          //   });
-          //   console.log(docRef.id);
-          //   toast({ title: "Success", description: docRef.id });
+          try {
+            const docRef = await addDoc(collection(db, "users"), {
+              name: values.name,
+              email: values.email,
+              password: values.password,
+            });
+            console.log(docRef.id);
+            toast({ title: "Success", description: docRef.id });
 
-          //   form.reset();
-          // } catch (error: any) {
-          //   toast({ title: "failure", description: error });
-          //   console.error(error);
-          // }
+            form.reset();
+          } catch (error: any) {
+            toast({ title: "failure", description: error });
+            console.error(error);
+          }
           toast({ title: "Login success", description: "successfully logged in"});
         }
       } catch (error) {}

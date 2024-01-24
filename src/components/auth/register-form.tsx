@@ -1,9 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { db } from '@/firebase/config';
+import { collection, addDoc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,48 +29,38 @@ const RegisterForm = () => {
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      name: "",
       email: "",
       password: "",
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof registerSchema>) => {
-    startTransition(() => {
-      register(values)
-        .then((data) => {
-          if (data.error) {
-            toast({ title: "Login Error", description: data.error});
-          } else if (data.success) {
-            toast({ title: "Success", description: data.success});
-          }
-      })
-    })
+  const onSubmit = (values: z.infer<typeof registerSchema>) => {
+     startTransition(async () => {
+    try {
+      const data = await register(values);
 
-    // const { email, password }  = values;
-    // try {
-    //     const { email, password } = values;
-    //     const res = await fetch("http://localhost:8080/register", {
-    //       method: "POST",
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //       },
-    //       body: JSON.stringify({ email, password }),
-    //     });
-    //     const data = await res.json();
-    //     console.log(data);
+      if (data.error) {
+        toast({ title: "Login Error", description: data.error });
+      } else if (data.success) {
+        try {
+          const docRef = await addDoc(collection(db, "users"), {
+            name: values.name,
+            email: values.email,
+            password: values.password
+          });
+          console.log(docRef.id);
+          toast({ title: "Success", description: docRef.id });
 
-    //     if (data?.status == "success") {
-    //       toast({ title: "Login Authentication", description: "user registered successfully"});
-    //     } else if(data?.status === 'conflict') {
-    //       toast({ title: "Login Failed", description: "user already exists"});
-    //     }
-    //   } catch (error) {
-    //     toast({
-    //       title: "Login Authentication",
-    //       description: "User does not exist",
-    //       duration: 2000,
-    //     });
-    //   } 
+          form.reset();
+        } catch (error: any) {
+            toast({ title: "failure", description: error})
+            console.error(error)
+        }
+      }
+    } catch (error) {
+    }
+  })
   };
 
   return (
